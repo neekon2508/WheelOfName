@@ -20,31 +20,32 @@ import {
 import { useState, useEffect, lazy } from "react";
 
 const LazyWheel = lazy(() =>
-  import("../Wheel").then((module) => ({ default: module.Wheel }))
+  import("../wheels/Wheel1").then((module) => ({ default: module.Wheel }))
 );
 const LazyNameEntries = lazy(() =>
   import("../NameEntries").then((module) => ({ default: module.NameEntries }))
 );
 
 export function Page1() {
-  const initialHeaderText =
-    localStorage.getItem("header-text") || "🎡 Wheel of Names";
+  const defaultNames = ['1','2','3','4','5','6','7'];
+  const [history, setHistory] = useState<string[]>(() => {
+  const saved = 
+  localStorage.getItem("wheel-history");
+  return saved ? JSON.parse(saved) : [];
+});
+  const [headerText, setHeaderText] = useState<string>('Bốc thăm số thứ tự');
   const [names, setNames] = useState<string[]>([]);
   const [shuffleNames, setShuffleNames] = useState<boolean>(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [headerText, setHeaderText] = useState<string>(initialHeaderText);
 
-  useEffect(() => {
-    updateHeaderText(initialHeaderText);
-  }, []);
 
   const removeWinnerFromWheel = () => {
     if (winner) {
       const updatedNames = names.filter((name) => name !== winner);
       setNames(updatedNames);
 
-      localStorage.setItem("wheel-names", JSON.stringify(updatedNames));
+      localStorage.setItem("wheel-names-1", JSON.stringify(updatedNames));
 
       // Update the textarea content
       const textarea = document.querySelector("textarea");
@@ -60,6 +61,10 @@ export function Page1() {
     setWinner(name);
     setIsDialogOpen(true);
 
+    const newHistory = [...history, name];
+    setHistory(newHistory);
+    localStorage.setItem("wheel-history", JSON.stringify(newHistory));
+    
     // Create fireworks container
     const pyroContainer = document.createElement("div");
     pyroContainer.className = "pyro";
@@ -83,41 +88,18 @@ export function Page1() {
       }
     }, 4000); // Remove fireworks after 5 seconds
   };
-
-  const handleShuffle = () => {
-    if (shuffleNames) {
-      const shuffled = [...names].sort(() => Math.random() - 0.5);
-      setNames(shuffled);
-    }
-  };
-
   const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHeaderText = e.target.value;
     updateHeaderText(newHeaderText);
   };
 
   const pickRandomHeader = () => {
-    const randomHeaders = [
-      "🎯 Today’s Chosen One: Luck or Chaos?",
-      "🐸 Fate Has Spoken (Kinda)",
-      "🤡 Wheel of Fortunate-ish",
-      "🍕 Spin It to Win… Bragging Rights",
-      "🦄 The Universe Decides (No Refunds)",
-      "🫣 One Spin to Rule Them All",
-      "🎲 Destiny? Or Just Dumb Luck?",
-      "🐔 Cluck of the Draw",
-      "🛸 Beamed Up by Luck Today?",
-      "🧃 Winner Gets Nothing But Vibes",
-    ];
-
-    const randomHeader =
-      randomHeaders[Math.floor(Math.random() * randomHeaders.length)];
-    updateHeaderText(randomHeader);
+    const header = "Chọn lượt quay";
+    updateHeaderText(header);
   };
 
   const updateHeaderText = (newHeaderText: string) => {
     setHeaderText(newHeaderText);
-    localStorage.setItem("header-text", newHeaderText);
     document.title = newHeaderText;
   };
 
@@ -138,25 +120,28 @@ export function Page1() {
             {headerText}
           </Heading>
 
-          <Flex width="full" direction={{ base: "column", md: "row" }} gap={4}>
-            <Box width={{ base: "100%", md: "60%" }} mb={{ base: 6, md: 0 }}>
-              <LazyWheel
-                names={names}
-                setNames={setNames}
-                onShuffle={handleShuffle}
-                onSelectWinner={(name: string) => announceWinner(name)}
-              />
-            </Box>
-            <Box width={{ base: "100%", md: "40%" }}>
-              <LazyNameEntries
-                names={names}
-                setNames={setNames}
-                headerText={headerText}
-                setHeaderText={handleHeaderChange}
-                pickRandomHeader={pickRandomHeader}
-              />
-            </Box>
-          </Flex>
+          <Flex width="full" direction={{ base: "column", lg: "row" }} gap={8} align="start">
+  {/* Tăng width lên 80% hoặc để auto để nó nở ra theo giới hạn 1200px */}
+  <Box width={{ base: "100%", lg: "75%" }} mb={{ base: 6, lg: 0 }}>
+    <LazyWheel
+      names={names}
+      setNames={setNames}
+      onSelectWinner={(name: string) => announceWinner(name)}
+    />
+  </Box>
+  
+  {/* Giảm width của cột danh sách xuống */}
+  <Box width={{ base: "100%", lg: "25%" }}>
+    <LazyNameEntries
+      names={names}
+      setNames={setNames}
+      headerText={headerText}
+      defaultNames={defaultNames} 
+      wheelName={"1"} 
+      setHeaderText={handleHeaderChange}                         
+    />
+  </Box>
+</Flex>
         </Container>
       </Box>
 
@@ -167,9 +152,9 @@ export function Page1() {
           <DialogContent>
             <DialogCloseTrigger />
             <DialogHeader>
-              <DialogTitle>Winner Announcement</DialogTitle>
+              <DialogTitle>Chúc mừng</DialogTitle>
             </DialogHeader>
-            <DialogBody>🎉 Winner: {winner}! 🎉</DialogBody>
+            <DialogBody>STT của bạn là: {winner}! 🎉</DialogBody>
             <DialogFooter>
               <Button
                 onClick={() => setIsDialogOpen(false)}

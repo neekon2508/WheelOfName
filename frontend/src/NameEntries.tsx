@@ -13,14 +13,14 @@ interface NameEntriesProps {
   setNames: (names: string[]) => void;
   headerText: string;
   setHeaderText: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  pickRandomHeader: () => void;
+  defaultNames: string[];
+  wheelName: string;
 }
 
 export const EditableHeader: React.FC<{
   headerText: string;
   setHeaderText: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  pickRandomHeader: () => void;
-}> = ({ headerText, setHeaderText, pickRandomHeader }) => {
+}> = ({ headerText, setHeaderText }) => {
   return (
     <Box textAlign="center" mb={6}>
       <Flex align="center" justify="start" gap={2}>
@@ -39,15 +39,6 @@ export const EditableHeader: React.FC<{
           }}
           placeholder="Edit header text"
         />
-        <Button
-          bg="#EAEAEA"
-          color="#333333"
-          borderRadius="4px"
-          _hover={{ bg: "#CCCCCC" }}
-          onClick={pickRandomHeader}
-        >
-          <RandomIcon color="#888888" />
-        </Button>
       </Flex>
     </Box>
   );
@@ -58,23 +49,16 @@ export const NameEntries: React.FC<NameEntriesProps> = ({
   setNames,
   headerText,
   setHeaderText,
-  pickRandomHeader,
+  defaultNames,
+  wheelName
+
 }) => {
-  const defaultNames = [
-    "Alice",
-    "Bob",
-    "Charlie",
-    "David",
-    "Emma",
-    "Frank",
-    "Grace",
-    "Henry",
-  ];
+  
 
   const [isAscending, setIsAscending] = useState<boolean>(true);
 
   useEffect(() => {
-    const storedNames = localStorage.getItem("wheel-names");
+    const storedNames = localStorage.getItem("wheel-"+wheelName);
     if (storedNames) {
       try {
         const parsedNames = JSON.parse(storedNames);
@@ -100,7 +84,7 @@ export const NameEntries: React.FC<NameEntriesProps> = ({
 
   const updateNames = (updatedNames: string[]) => {
     setNames(updatedNames);
-    localStorage.setItem("wheel-names", JSON.stringify(updatedNames));
+    localStorage.setItem("wheel-names-"+wheelName, JSON.stringify(updatedNames));
 
     // Update the textarea content
     const textarea = document.querySelector("textarea");
@@ -116,7 +100,7 @@ export const NameEntries: React.FC<NameEntriesProps> = ({
       .map((name) => name.trim())
       .filter((name) => name);
     setNames(updatedNames);
-    localStorage.setItem("wheel-names", JSON.stringify(updatedNames));
+    localStorage.setItem("wheel-names-"+wheelName, JSON.stringify(updatedNames));
   };
 
   return (
@@ -136,28 +120,10 @@ export const NameEntries: React.FC<NameEntriesProps> = ({
         <EditableHeader
           headerText={headerText}
           setHeaderText={setHeaderText}
-          pickRandomHeader={pickRandomHeader}
         />
 
         <Box>
           <Flex align="center" justify="start" gap={2}>
-            <Button
-              bg="#EAEAEA"
-              color="#333333"
-              borderRadius="4px"
-              _hover={{ bg: "#CCCCCC" }}
-              onClick={() => {
-                const shuffled = [...names].sort(() => Math.random() - 0.9);
-                updateNames(shuffled);
-              }}
-              display="flex"
-              alignItems="center"
-            >
-              <ShuffleIcon color="#888888" />
-              <Box display={{ base: "none", md: "block" }} color="#333333">
-                Shuffle
-              </Box>
-            </Button>
           </Flex>
         </Box>
 
