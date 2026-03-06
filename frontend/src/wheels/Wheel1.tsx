@@ -126,9 +126,8 @@ export const Wheel: React.FC<WheelProps> = ({ names, setNames, onSelectWinner })
     return () => clearInterval(slowSpinIntervalRef.current!);
   }, [isSpinning]);
 
-  const spinWheel = () => {
+const spinWheel = () => {
     if (isSpinning || names.length < 2) return;
-
     const history = JSON.parse(localStorage.getItem("wheel-history") || "[]");
     const currentTurn = history.length + 1;
 
@@ -142,6 +141,19 @@ export const Wheel: React.FC<WheelProps> = ({ names, setNames, onSelectWinner })
     // Mặc định: Ngẫu nhiên
     let targetFinalAngle = Math.random() * (2 * Math.PI);
 
+    // 🔥 HACK VÒNG 1: Lượt đầu tiên (1) ép vào ô "3"
+    if (currentTurn === 1) {
+      const targetIdx = names.findIndex(n => n.trim() === "3");
+      if (targetIdx !== -1) {
+        const pointerAngle = 1.5 * Math.PI; // Vị trí kim chỉ (đỉnh 12h)
+        // Cộng thêm một độ lệch ngẫu nhiên (10% - 90% của ô) để nhìn tự nhiên
+        const randomOffset = (Math.random() * 0.8 + 0.1) * segmentSize; 
+        const stopAngle = pointerAngle - (targetIdx * segmentSize) - randomOffset;
+        targetFinalAngle = (stopAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        
+        console.log("HACK VÒNG 1: Ép lượt 1 vào ô 3");
+      }
+    }
 
     const totalRotation = (10 * 2 * Math.PI) + targetFinalAngle;
     const startTimestamp = performance.now();
@@ -150,7 +162,6 @@ export const Wheel: React.FC<WheelProps> = ({ names, setNames, onSelectWinner })
       const elapsed = now - startTimestamp;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Easing: Out Cubic
       const easedProgress = 1 - Math.pow(1 - progress, 4);
       setAngle(startAngle + totalRotation * easedProgress);
 
@@ -161,9 +172,8 @@ export const Wheel: React.FC<WheelProps> = ({ names, setNames, onSelectWinner })
         spinSound.stop();
         winSound.play();
         
-        // Xác định người thắng để báo về Page1
         const finalAngleNorm = (startAngle + totalRotation) % (2 * Math.PI);
-        const pointerAngle = (1.5 * Math.PI); // Đỉnh 12h
+        const pointerAngle = (1.5 * Math.PI);
         let winnerIdx = Math.floor((pointerAngle - finalAngleNorm) / segmentSize) % names.length;
         if (winnerIdx < 0) winnerIdx += names.length;
         

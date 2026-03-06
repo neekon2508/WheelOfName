@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Howl } from "howler";
 import { Box, Center } from "@chakra-ui/react";
 import { getBoyMap } from "../utils";
@@ -16,10 +16,7 @@ const spinSound = new Howl({ src: ["/wheel-of-names/sounds/spin.wav"], preload: 
 const winSound = new Howl({ src: ["/wheel-of-names/sounds/win.wav"], preload: true });
 
 export const Wheel: React.FC<WheelProps> = ({ names, setNames, onSelectWinner }) => {
-// --- DỮ LIỆU CẤU HÌNH ---
-// Nếu bạn muốn ép lượt quay thứ 1 ra kết quả cụ thể
-const array = localStorage.getItem('wheel-history');
-const TARGET_TURN = array ? Number(JSON.parse(array)[STT-1]) : 0; 
+// --- DỮ LIỆU CẤU HÌNH --
 const TARGET_KEY = 11;   // Key trong boyMap muốn thắng
   const [spinCount, setSpinCount] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -133,11 +130,12 @@ const TARGET_KEY = 11;   // Key trong boyMap muốn thắng
     return () => clearInterval(slowSpinIntervalRef.current!);
   }, [isSpinning]);
 
-  const spinWheel = () => {
+const spinWheel = () => {
     if (isSpinning || names.length < 2) return;
+
+    // 1. Cập nhật lượt quay
     const currentTurn = spinCount + 1;
     setSpinCount(currentTurn);
-
 
     setIsSpinning(true);
     spinSound.play();
@@ -146,36 +144,49 @@ const TARGET_KEY = 11;   // Key trong boyMap muốn thắng
     const segmentSize = (2 * Math.PI) / names.length;
     const startAngle = angle;
     
-    // Mặc định: Ngẫu nhiên
-    let targetFinalAngle = Math.random() * (2 * Math.PI);
+    // 2. Mặc định là điểm dừng ngẫu nhiên
+    let stopAngle = Math.random() * (2 * Math.PI);
 
-   // 3. KIỂM TRA LƯỢT ÉP KẾT QUẢ
-    if (currentTurn === TARGET_TURN) {
+    // 🔥 3. HACK VÒNG 2: Ép lượt 3 trúng KEY 11 ("đạt")
+    if (currentTurn === 3) {
       const boyMap = getBoyMap();
-      const targetName = boyMap.get(TARGET_KEY); // TARGET_KEY = 11 là "đạt"
+      const targetName = boyMap.get(11); // Trả về "đạt"
       
-      // Tìm vị trí của "đạt" (không phân biệt hoa thường, khoảng trắng)
-      const targetIdx = names.findIndex(
-        n => n.trim().toLowerCase() === targetName.toLowerCase()
-      );
+      if (targetName) {
+        const targetIdx = names.findIndex(
+          n => n.trim().toLowerCase() === targetName.toLowerCase()
+        );
 
-      if (targetIdx !== -1) {
-        // Tính toán để targetIdx dừng lại ở đỉnh 12h
-        const stopAngle = (1.5 * Math.PI) - (targetIdx * segmentSize) - (segmentSize / 2);
-        targetFinalAngle = (stopAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-        
-        console.log(`HACK: Lượt quay thứ ${currentTurn} của Vòng 2 khớp với kết quả Vòng 1. Người thắng: ${targetName}`);
+        if (targetIdx !== -1) {
+          const pointerAngle = 1.5 * Math.PI; // Vị trí kim (12h)
+          // Độ lệch ngẫu nhiên để kim không nằm chính giữa mép ô
+          const randomOffset = (Math.random() * 0.8 + 0.1) * segmentSize; 
+          
+          // Tính góc tuyệt đối mà vòng quay CẦN DỪNG LẠI
+          stopAngle = pointerAngle - (targetIdx * segmentSize) - randomOffset;
+          console.log(`[HACK] Vòng 2 - Lượt 3 - Ép trúng: ${targetName}`);
+        }
       }
     }
 
-    const totalRotation = (10 * 2 * Math.PI) + targetFinalAngle;
+    // 4. CHUẨN HÓA GÓC QUAY (Khắc phục lỗi trượt góc)
+    const normalizedStopAngle = (stopAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    const currentMod = startAngle % (2 * Math.PI);
+    
+    // Tính toán khoảng cách cần quay thêm để bù trừ góc hiện tại
+    let extraRotation = normalizedStopAngle - currentMod;
+    if (extraRotation < 0) {
+      extraRotation += 2 * Math.PI;
+    }
+
+    // Quay 10 vòng cho đẹp mắt + phần góc cần bù trừ
+    const totalRotation = (10 * 2 * Math.PI) + extraRotation;
     const startTimestamp = performance.now();
 
     const animate = (now: number) => {
       const elapsed = now - startTimestamp;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Easing: Out Cubic
       const easedProgress = 1 - Math.pow(1 - progress, 4);
       setAngle(startAngle + totalRotation * easedProgress);
 
@@ -186,9 +197,8 @@ const TARGET_KEY = 11;   // Key trong boyMap muốn thắng
         spinSound.stop();
         winSound.play();
         
-        // Xác định người thắng để báo về Page1
         const finalAngleNorm = (startAngle + totalRotation) % (2 * Math.PI);
-        const pointerAngle = (1.5 * Math.PI); // Đỉnh 12h
+        const pointerAngle = (1.5 * Math.PI);
         let winnerIdx = Math.floor((pointerAngle - finalAngleNorm) / segmentSize) % names.length;
         if (winnerIdx < 0) winnerIdx += names.length;
         
