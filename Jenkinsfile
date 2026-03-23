@@ -38,14 +38,12 @@ pipeline {
             steps {
                 echo "--- Bắt đầu triển khai lên Nginx ---"
                 script {
-                    sh "sudo mkdir -p ${DEPLOY_PATH}"
+                    sh "mkdir -p ${DEPLOY_PATH}"
                     
-                    sh "sudo rm -rf ${DEPLOY_PATH}/*"
+                    sh "rm -rf ${DEPLOY_PATH}/*"
                     
-                    sh "sudo cp -r ${BUILD_FOLDER}/* ${DEPLOY_PATH}/"
-                    
-                    sh "sudo chown -R www-data:www-data ${DEPLOY_PATH}"
-                    
+                    sh "cp -r ${BUILD_FOLDER}/* ${DEPLOY_PATH}/"
+                  
                     sh "sudo systemctl reload nginx"
                 }
             }
