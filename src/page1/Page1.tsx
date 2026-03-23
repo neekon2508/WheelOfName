@@ -27,7 +27,7 @@ const LazyNameEntries = lazy(() =>
 );
 
 export function Page1() {
-  const defaultNames = ['1','2','3','4','5','6','7'];
+  const defaultNames = ['1','2','3','4','5','6','7', '8', '9', '10'];
   const [history, setHistory] = useState<string[]>(() => {
   const saved = 
   localStorage.getItem("wheel-history");
